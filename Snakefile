@@ -2,6 +2,7 @@
 
 import multiprocessing
 
+
 #############
 # FUNCTIONS #
 #############
@@ -15,6 +16,7 @@ def input_reads_resolver(wildcards):
         'r2': ('data/raw_reads/CDWA0ANXX-3848-'
                f'{my_sample_number:02}-49-01_'
                f'S{my_sample_number}_L001_R2_001.fastq.gz')})
+
 
 ###########
 # GLOBALS #
@@ -49,8 +51,33 @@ salmontools = 'local_containers/salmontools_23eac84.sif'
 
 rule target:
     input:
-        expand('output/010_bbduk-trim/{sample}_r1.fq.gz',
+        expand('output/020_salmon/{sample}',
                sample=list(sample_id_key.keys()))
+
+rule salmon_quant:
+    input:
+        r1 = 'output/010_bbduk-trim/{sample}_r1.fq.gz',
+        r2 = 'output/010_bbduk-trim/{sample}_r2.fq.gz',
+        index = 'output/005_index'
+    output:
+        directory('output/020_salmon/{sample}')
+    log:
+        'output/logs/020_salmon/{sample}.log'
+    threads:
+        multiprocessing.cpu_count()
+    singularity:
+        salmon
+    shell:
+        'salmon quant '
+        '--libType ISR '
+        '--index {input.index} '
+        '--mates1 {input.r1} '
+        '--mates2 {input.r2} '
+        '--output {output} '
+        '--threads {threads} '
+        '--validateMappings '
+        '&> {log}'
+
 
 rule bbduk_trim:
     input:
@@ -76,13 +103,36 @@ rule bbduk_trim:
         'ktrim=r k=23 mink=11 hdist=1 tpe tbo qtrim=r trimq=15 '
         '&> {log}'
 
+rule generate_index:
+    input:
+        transcriptome = 'output/000_ref/gentrome.fa',
+        decoys = 'output/000_ref/decoys.txt'
+    output:
+        directory('output/005_index')
+    log:
+        'output/logs/005_index/generate_index.log'
+    threads:
+        multiprocessing.cpu_count()
+    singularity:
+        salmon
+    shell:
+        'salmon index '
+        '--transcripts {input.transcriptome} '
+        '--index {output} '
+        '--threads {threads} '
+        '--decoys {input.decoys} '
+        '&> {log}'
+
 rule generate_decoy_trancriptome:
     input:
         fasta = 'data/ref/GCF_003254395.2_Amel_HAv3.1_genomic.fna',
         transcriptome = 'data/ref/GCF_003254395.2_Amel_HAv3.1_rna.fna',
         gff = 'data/ref/GCF_003254395.2_Amel_HAv3.1_genomic.gff'
     output:
-        'output/000_ref/gentrome.fa'
+        'output/000_ref/gentrome.fa',
+        'output/000_ref/decoys.txt'
+    params:
+        outdir = 'output/000_ref'
     log:
         'output/logs/000_ref/generate_decoy_trancriptome.log'
     threads:
@@ -97,6 +147,5 @@ rule generate_decoy_trancriptome:
         '-a {input.gff} '
         '-g {input.fasta} '
         '-t {input.transcriptome} '
-        '-o {output} '
+        '-o {params.outdir} '
         '&> {log}'
-
