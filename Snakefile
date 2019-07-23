@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import multiprocessing
 
 #############
 # FUNCTIONS #
@@ -38,6 +39,8 @@ sample_id_key = {
 
 # singularity containers
 bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.50b'
+salmon = 'local_containers/salmon_0.14.1.sif'
+salmontools = 'local_containers/salmontools_23eac84.sif'
 
 
 #########
@@ -73,4 +76,27 @@ rule bbduk_trim:
         'ktrim=r k=23 mink=11 hdist=1 tpe tbo qtrim=r trimq=15 '
         '&> {log}'
 
+rule generate_decoy_trancriptome:
+    input:
+        fasta = 'data/ref/GCF_003254395.2_Amel_HAv3.1_genomic.fna',
+        transcriptome = 'data/ref/GCF_003254395.2_Amel_HAv3.1_rna.fna',
+        gff = 'data/ref/GCF_003254395.2_Amel_HAv3.1_genomic.gff'
+    output:
+        'output/000_ref/gentrome.fa'
+    log:
+        'output/logs/000_ref/generate_decoy_trancriptome.log'
+    threads:
+        multiprocessing.cpu_count()
+    singularity:
+        salmontools
+    shell:
+        'generateDecoyTranscriptome.sh '
+        '-j {threads} '
+        '-b /usr/bin/bedtools '
+        '-m /usr/local/bin/mashmap '
+        '-a {input.gff} '
+        '-g {input.fasta} '
+        '-t {input.transcriptome} '
+        '-o {output} '
+        '&> {log}'
 
