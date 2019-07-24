@@ -43,7 +43,7 @@ sample_id_key = {
 bbmap = 'shub://TomHarrop/singularity-containers:bbmap_38.50b'
 salmon = 'local_containers/salmon_0.14.1.sif'
 salmontools = 'local_containers/salmontools_23eac84.sif'
-
+bioconductor = 'local_containers/bioconductor_3.9.sif'
 
 #########
 # RULES #
@@ -51,8 +51,23 @@ salmontools = 'local_containers/salmontools_23eac84.sif'
 
 rule target:
     input:
-        expand('output/020_salmon/{sample}',
-               sample=list(sample_id_key.keys()))
+        'output/030_deseq/dds.Rds'
+
+rule generate_deseq2_object:
+    input:
+        quant_files = expand('output/020_salmon/{sample}/quant.sf',
+                             sample=list(sample_id_key.keys())),
+        gff = 'data/ref/GCF_003254395.2_Amel_HAv3.1_genomic.gff'
+    output:
+        'output/030_deseq/dds.Rds'
+    log:
+        'output/logs/030_deseq/generate_deseq2_object.log'
+    threads:
+        multiprocessing.cpu_count()
+    singularity:
+        bioconductor
+    script:
+        'src/generate_deseq2_object.R'
 
 rule salmon_quant:
     input:
@@ -60,7 +75,7 @@ rule salmon_quant:
         r2 = 'output/010_bbduk-trim/{sample}_r2.fq.gz',
         index = 'output/005_index'
     output:
-        directory('output/020_salmon/{sample}')
+        'output/020_salmon/{sample}/quant.sf'
     log:
         'output/logs/020_salmon/{sample}.log'
     threads:
@@ -76,6 +91,7 @@ rule salmon_quant:
         '--output {output} '
         '--threads {threads} '
         '--validateMappings '
+        '--gcBias '
         '&> {log}'
 
 
