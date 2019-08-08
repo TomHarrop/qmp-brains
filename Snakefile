@@ -51,7 +51,24 @@ bioconductor = 'local_containers/bioconductor_3.9.sif'
 
 rule target:
     input:
-        'output/030_deseq/dds.Rds'
+        'output/030_deseq/lrt_results.csv'
+
+
+rule deseq2_lrt:
+    input:
+        dds = 'output/030_deseq/dds.Rds'
+    output:
+        pca_plot = 'output/030_deseq/pca.pdf',
+        lrt_results = 'output/030_deseq/lrt_results.csv'
+    params:
+        alpha = 0.01
+    log:
+        'output/logs/030_deseq/deseq2_lrt.log'
+    singularity:
+        bioconductor
+    script:
+        'src/deseq2_lrt.R'
+
 
 rule generate_deseq2_object:
     input:
