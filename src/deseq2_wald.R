@@ -81,8 +81,8 @@ keep_genes <- (row_means > 5 | row_max > 10)
 no_s1 <- ExcludeAndRunDeseq(dds, keep_genes, discard = discard_s1)
 no_s1a <- ExcludeAndRunDeseq(dds, keep_genes, discard = discard_rin)
 
-fwrite(no_s1a, snakmake@output[["res_with_s1"]])
-fwrite(no_s1, snakmake@output[["res_no_s1"]])
+fwrite(no_s1a, snakemake@output[["res_with_s1"]])
+fwrite(no_s1, snakemake@output[["res_no_s1"]])
 
 sessionInfo()
 
