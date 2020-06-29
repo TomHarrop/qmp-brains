@@ -51,7 +51,27 @@ bioconductor = 'local_containers/bioconductor_3.9.sif'
 
 rule target:
     input:
-        'output/030_deseq/lrt_results.csv'
+        'output/030_deseq/lrt_results.csv',
+        'output/030_deseq/wald_no_s1.csv'
+
+
+rule deseq2_wald:
+    input:
+        dds = 'output/030_deseq/dds.Rds'
+    output:
+        res_no_s1 = 'output/030_deseq/wald_no_s1.csv',
+        res_with_s1 = 'output/030_deseq/wald_with_s1.csv',
+    params:
+        alpha = 0.1,
+        lfc_cutoff = 0.5849625      # log(1.5, 2)
+    log:
+        'output/logs/030_deseq/deseq2_wald.log'
+    threads:
+        20
+    singularity:
+        bioconductor
+    script:
+        'src/deseq2_wald.R'
 
 
 rule deseq2_lrt:
